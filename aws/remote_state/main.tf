@@ -10,6 +10,14 @@
 
 terraform {
   required_version = ">= 0.12"
+# first comment out these lines while it build the beckend infreastructure. Then later after re-run "terraform init" uncommenting this block
+  backend "s3" {
+    bucket         = "<ACCOUNT_ID>-terraform-states"
+    key            = "global/s3/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "terraform-lock"
+   }
 }
 
 # ------------------------------------------------------------------------------
@@ -32,11 +40,12 @@ resource "aws_s3_bucket" "terraform_state" {
   # With account id, this S3 bucket names can be *globally* unique.
   bucket = "${local.account_id}-terraform-states"
 
+# ------------------------- This way still works but outdated -------------------------
   # Enable versioning so we can see the full revision history of our
   # state files
-  versioning {
-    enabled = true
-  }
+  #versioning {
+   # enabled = true
+  #}
 
   # Enable server-side encryption by default
   server_side_encryption_configuration {
@@ -45,6 +54,14 @@ resource "aws_s3_bucket" "terraform_state" {
         sse_algorithm = "AES256"
       }
     }
+  }
+}
+
+# ------------------------- New modern way to handel versioning outside the buckey block -------------------------
+  resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
+    bucket = aws_s3_bucket.terraform_state.id
+    versioning_configuration {
+      status = "Enabled"
   }
 }
 
